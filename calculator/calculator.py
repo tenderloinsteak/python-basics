@@ -1,6 +1,32 @@
 # tkinter는 파이썬 기본 GUI 툴킷. UI를 만들 수 있게 해줌
 import tkinter as tk
 
+import ast
+
+def safe_eval(expr):
+    """
+    안전한 사칙연산 계산기
+    +, -, *, /, (), 숫자만 허용
+    """
+    allowed_nodes = {
+        ast.Expression, ast.BinOp, ast.UnaryOp,
+        ast.Add, ast.Sub, ast.Mult, ast.Div,
+        ast.Load, ast.USub, ast.UAdd,
+        ast.Constant, ast.Num, ast.Pow,
+        ast.Mod, ast.FloorDiv, ast.Call,
+        ast.Tuple
+    }
+
+    def _check_node(node):
+        if type(node) not in allowed_nodes:
+            raise ValueError(f"허용되지 않은 연산입니다: {type(node).__name__}")
+        for child in ast.iter_child_nodes(node):
+            _check_node(child)
+
+    node = ast.parse(expr, mode='eval')
+    _check_node(node)
+    return eval(compile(node, filename="", mode="eval"))
+
 # 계산기 클래스 정의
 class Calculator:
     def __init__(self, root):
@@ -39,7 +65,7 @@ class Calculator:
     def on_click(self, char):
         if char == "=":
             try:
-                result = str(eval(self.expression))  # eval 함수로 수식 계산
+                result = str(safe_eval(self.expression))  # safe_eval 함수로 수식 계산
                 self.entry.delete(0, tk.END)         # 기존 입력 지움
                 self.entry.insert(tk.END, result)    # 결과 입력
                 self.expression = result             # 결과를 다음 계산에 이어서 사용
